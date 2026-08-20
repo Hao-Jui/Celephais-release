@@ -1,0 +1,156 @@
+/*
+    Copyright 2025 Philippe Grandclement
+
+    This file is part of Kadath.
+
+    Kadath is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Kadath is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Kadath.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+ * Modifications (Celephais):
+ *   2026-06-16  Modified for the Celephais tree; see
+ *               PATCHES-KADATH-UPSTREAM.md and LICENSE_SOURCE_AUDIT.tsv.
+ */
+
+#include "For_Kadath/Array/headcpp.hpp"
+
+#include "For_Kadath/Domain/bispheric_nosym.hpp"
+#include "For_Kadath/Scalar/scalar.hpp"
+#include "For_Kadath/Tensor/tensor.hpp"
+
+namespace Kadath {
+void Domain_bispheric_eta_first_nosym::affecte_tau_val_domain (Val_domain& so, const Array<double>& values, int& conte) const {
+
+
+	so.allocate_coef() ;
+	*so.cf = 0. ;
+	Index pos (nbr_coefs) ;
+	do {
+		bool indic = true ;
+		// Check true coefs in phi
+		if ((pos(2)==1) || (pos(2)==nbr_coefs(2)-1))
+			indic = false ;
+
+		int basechi = (*so.get_base().bases_1d[0]) (pos(1), pos(2)) ;
+		// No last coef if odd
+		if (((basechi==CHEB_ODD) || (basechi==LEG_ODD)) && (pos(0)==nbr_coefs(0)-1))
+			indic = false ;
+
+		//Galerkin for even ones
+		if (((basechi==CHEB_EVEN) || (basechi==LEG_EVEN)) && (pos(2)!=0) && (pos(0)==0))
+			indic = false ;
+
+		if (indic) {
+			so.cf->set(pos) = values(conte) ;
+			conte ++ ;
+		}
+	}
+	while (pos.inc()) ;
+
+	// Regularity on the axis :
+	// Loop on phi :
+	for (int k=1 ; k<nbr_coefs(2)-1 ; k++) {
+		pos.set(2) = k ;
+		for (int j=0 ; j<nbr_coefs(1) ; j++) {
+			pos.set(1) = j ;
+			int basechi = (*so.get_base().bases_1d[0])(j, k) ;
+
+			if ((basechi==CHEB_EVEN) || (basechi==LEG_EVEN)) {
+				double summ = 0 ;
+				double val = 1 ;
+				for (int i=1 ; i<nbr_coefs(0) ; i++) {
+					pos.set(0) = i ;
+					switch (basechi) {
+						case CHEB_EVEN :
+							val *= -1. ;
+							summ += val*(*so.cf)(pos) ;
+							break ;
+						case LEG_EVEN :
+							val *= - double(2*i-1)/double(2*i) ;
+							summ += val*(*so.cf)(pos) ;
+							break ;
+						default :
+							cerr << "Unknown base in Domain_bispheric_eta_first_nosym::affecte_one_coef" << endl ;
+							abort() ;
+					}
+				}
+				pos.set(0) = 0 ;
+				so.cf->set(pos) = -summ ;
+			}
+		}
+	}
+}
+
+void Domain_bispheric_eta_first_nosym::affecte_tau (Tensor& tt, int dom, const Array<double>& cf, int& pos_cf) const {
+
+	// Check right domain
+	assert (tt.get_space().get_domain(dom)==this) ;
+
+	int val = tt.get_valence() ;
+	switch (val) {
+		case 0 :
+			affecte_tau_val_domain (tt.set().set_domain(dom), cf, pos_cf) ;
+			break ;
+		case 1 : {
+			bool found = false ;
+			// Cartesian basis
+			if (tt.get_basis().get_basis(dom)==CARTESIAN_BASIS) {
+				affecte_tau_val_domain (tt.set(1).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(2).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(3).set_domain(dom), cf, pos_cf) ;
+				found = true ;
+			}
+			if (!found) {
+				cerr << "Unknown type of vector Domain_bispheric_eta_first_nosym::affecte_tau" << endl ;
+				abort() ;
+			}
+		}
+			break ;
+		case 2 : {
+			bool found = false ;
+			// Cartesian basis and symetric
+			if ((tt.get_basis().get_basis(dom)==CARTESIAN_BASIS) && (tt.get_n_comp()==6)) {
+				affecte_tau_val_domain (tt.set(1,1).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(1,2).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(1,3).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(2,2).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(2,3).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(3,3).set_domain(dom), cf, pos_cf) ;
+				found = true ;
+			}
+			// Cartesian basis and not symetric
+			if ((tt.get_basis().get_basis(dom)==CARTESIAN_BASIS) && (tt.get_n_comp()==9)) {
+				affecte_tau_val_domain (tt.set(1,1).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(1,2).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(1,3).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(2,1).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(2,2).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(2,3).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(3,1).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(3,2).set_domain(dom), cf, pos_cf) ;
+				affecte_tau_val_domain (tt.set(3,3).set_domain(dom), cf, pos_cf) ;
+				found = true ;
+			}
+			if (!found) {
+				cerr << "Unknown type of 2-tensor Domain_bispheric_eta_first_nosym::affecte_tau" << endl ;
+				abort() ;
+			}
+		}
+			break ;
+		default :
+			cerr << "Valence " << val << " not implemented in Domain_bispheric_eta_first_nosym::affecte_tau" << endl ;
+			break ;
+	}
+}
+}

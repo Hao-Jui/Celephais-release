@@ -1,0 +1,7 @@
+#include "@KADATH_COEFF_READER_SPACE_HEADER@"
+#include "Apps/Diagnostics/coeff_reader_impl.hpp"
+
+int main(int argc, char** argv)
+{
+    return @KADATH_COEFF_READER_ENTRYPOINT@(argc, argv);
+}

@@ -1,0 +1,7 @@
+#include "@KADATH_XY_SNAPSHOT_SPACE_HEADER@"
+#include "Apps/Diagnostics/xy_snapshot_impl.hpp"
+
+int main(int argc, char** argv)
+{
+    return @KADATH_XY_SNAPSHOT_ENTRYPOINT@(argc, argv);
+}

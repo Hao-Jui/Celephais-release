@@ -1,0 +1,16 @@
+
+# The constants are already geometrised; the Cold_PWPoly reader does not use
+# the table-EOS mnuc_cgs conversion path.
+num_pieces: 1
+rhomin: 1.e-19
+rhomax: 1.0
+ktab0: 1
+Ptab0: 0
+
+gamma_tab
+2.0
+
+rho_tab
+0.0
+
+units: geometrised

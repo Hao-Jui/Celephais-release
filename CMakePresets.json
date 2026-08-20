@@ -1,0 +1,182 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "environment": {
+                "CCACHE_BASEDIR": "${sourceDir}",
+                "CCACHE_NOHASHDIR": "1",
+                "CCACHE_COMPILERCHECK": "content",
+                "CCACHE_SLOPPINESS": "pch_defines,time_macros,include_file_mtime,include_file_ctime"
+            }
+        },
+        {
+            "name": "default",
+            "displayName": "Default Release",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "macbook",
+            "displayName": "macOS (Homebrew + Accelerate)",
+            "inherits": "default",
+            "toolchainFile": "cmake/toolchains/macbook.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "BLA_VENDOR": "Apple",
+                "CELEPHAIS_USE_PCH": "ON",
+                "CELEPHAIS_TARGET_CLASS": "direct"
+            }
+        },
+        {
+            "name": "env",
+            "displayName": "Generic active environment",
+            "inherits": "default",
+            "generator": "Unix Makefiles",
+            "toolchainFile": "cmake/toolchains/env.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "unknown"
+            }
+        },
+        {
+            "name": "env-ninja",
+            "displayName": "Generic active environment (Ninja)",
+            "inherits": "env",
+            "generator": "Ninja"
+        },
+        {
+            "name": "viper",
+            "displayName": "Viper HPC (MPCDF)",
+            "inherits": "default",
+            "toolchainFile": "cmake/toolchains/viper.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "slurm"
+            }
+        },
+        {
+            "name": "sakura",
+            "displayName": "Sakura HPC (MPCDF)",
+            "inherits": "default",
+            "toolchainFile": "cmake/toolchains/sakura.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "slurm"
+            }
+        },
+        {
+            "name": "raven",
+            "displayName": "Raven HPC (MPCDF)",
+            "inherits": "default",
+            "toolchainFile": "cmake/toolchains/raven.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "slurm"
+            }
+        },
+        {
+            "name": "delta",
+            "displayName": "Delta HPC (NCSA)",
+            "inherits": "default",
+            "generator": "Unix Makefiles",
+            "toolchainFile": "cmake/toolchains/delta.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "slurm"
+            }
+        },
+        {
+            "name": "ncsa",
+            "displayName": "NCSA Campus Cluster",
+            "inherits": "default",
+            "toolchainFile": "cmake/toolchains/ncsa.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "slurm"
+            }
+        },
+        {
+            "name": "binac2",
+            "displayName": "bwForCluster BinAC 2",
+            "inherits": "default",
+            "toolchainFile": "cmake/toolchains/binac2.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "slurm"
+            }
+        },
+        {
+            "name": "snowman",
+            "displayName": "Snowman Workstation",
+            "inherits": "default",
+            "generator": "Unix Makefiles",
+            "toolchainFile": "cmake/toolchains/snowman.cmake",
+            "cacheVariables": {
+                "BUILD_APPS": "ON",
+                "CELEPHAIS_TARGET_CLASS": "direct"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug",
+            "inherits": "default",
+            "binaryDir": "${sourceDir}/build-debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "coverage",
+            "displayName": "Coverage (gcov)",
+            "inherits": "macbook",
+            "binaryDir": "${sourceDir}/build-coverage",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "--coverage -fprofile-arcs -ftest-coverage",
+                "CMAKE_C_FLAGS": "--coverage",
+                "BUILD_TESTING": "ON"
+            }
+        },
+        {
+            "name": "asan-ubsan",
+            "displayName": "AddressSanitizer + UndefinedBehaviorSanitizer",
+            "inherits": "macbook",
+            "binaryDir": "${sourceDir}/build-asan-ubsan",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O1 -g",
+                "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O1 -g",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize=alignment -fno-sanitize=vptr -fno-omit-frame-pointer",
+                "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize=alignment -fno-sanitize=vptr -fno-omit-frame-pointer",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+                "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined",
+                "BUILD_TESTING": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "macbook",    "configurePreset": "macbook",    "jobs": 0 },
+        { "name": "env",        "configurePreset": "env",        "jobs": 0 },
+        { "name": "env-ninja",  "configurePreset": "env-ninja",  "jobs": 0 },
+        { "name": "viper",      "configurePreset": "viper",      "jobs": 0 },
+        { "name": "sakura",     "configurePreset": "sakura",     "jobs": 0 },
+        { "name": "raven",      "configurePreset": "raven",      "jobs": 0 },
+        { "name": "delta",      "configurePreset": "delta",      "jobs": 0 },
+        { "name": "ncsa",       "configurePreset": "ncsa",       "jobs": 0 },
+        { "name": "binac2",     "configurePreset": "binac2",     "jobs": 0 },
+        { "name": "snowman",    "configurePreset": "snowman",    "jobs": 0 },
+        { "name": "debug",      "configurePreset": "debug",      "jobs": 0 },
+        { "name": "coverage",   "configurePreset": "coverage",   "jobs": 0 },
+        { "name": "asan-ubsan", "configurePreset": "asan-ubsan", "jobs": 0 },
+        { "name": "celephais",  "configurePreset": "macbook",    "jobs": 0, "targets": ["celephais"] }
+    ]
+}

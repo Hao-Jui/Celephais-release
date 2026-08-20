@@ -1,0 +1,25 @@
+# This is a table holding the information for a piecewise polytropic equation of state
+# which can be ingested into Margherita to construct the corresponding analytical polytrope     
+# The format of the file is not static, however, the order of variables is
+# Therefore, comments can be added so long as they are on their own lines.
+#
+# K0: constant of the zeroth boundary.
+# Pressure0: pressure of the zeroth boundary.
+
+num_pieces: 1
+rhomin: 1.e-19
+rhomax: 1.0
+ktab0: 100
+Ptab0: 0
+
+gamma_tab
+2.0
+
+rho_tab
+0.0
+
+#units can be:
+#geometrised
+#cgs
+#cgs_cgs_over_c2
+units: geometrised

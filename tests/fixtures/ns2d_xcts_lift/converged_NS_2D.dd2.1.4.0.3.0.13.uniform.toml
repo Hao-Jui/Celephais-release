@@ -1,0 +1,71 @@
+[ns]
+chi = 0.29999999999999999
+deg = 0
+dim = 2
+hc = 1.1987262984456228
+madm = 1.3999999999999999
+mb = 1.5252625838107772
+n_inner_shells = 0
+nc = 0.00091650689810677654
+nshells = 0
+omega = 0.014139116325493238
+ql_madm = 1.3999999999999999
+res = 13
+rin = 3.6874714415010295
+rmid = 7.3749428830020589
+rout = 14.749885766004118
+cstA = 1
+cstp = 1
+rot_law = "uniform"
+
+[eos]
+eosfile = "dd2.lorene"
+eostype = "Cold_Table"
+h_cut = 0
+interpolation_pts = 2000
+mnuc_cgs = 1.6605390399999999e-24
+
+[fields]
+conf = true
+lapse = true
+logh = true
+shift = true
+
+[stages]
+binary_boost = false
+norot = false
+uniform_rot = true
+
+[sequence_controls]
+checkpoint = false
+corot_binary = false
+fixed_bin_omega = false
+fixed_lapse = false
+fixed_mb = false
+initial_regrid = false
+scalar_control = false
+use_pn = false
+
+[adaptive_mesh_refinement]
+enabled = false
+h_angular_dominance = 1
+h_gain_min = 2
+h_saturation_linf = 0.94999999999999996
+h_stall_cycles = 1
+l2_tail_threshold = 1.0000000000000000e-08
+linf_tail_threshold = 9.9999999999999995e-08
+max_cycles = 2
+max_nr = 15
+max_shells = 3
+mode = "hp"
+norm_floor = 0
+p_dof_growth_limit = 2
+p_fallback_dof_growth_limit = 1.1000000000000001
+p_fallback_max_candidates = 1
+refine_bispheric = true
+tail_width = 2
+
+[sequence_settings]
+initial_resolution = 13
+solver_max_iterations = 50
+solver_precision = 1.0000000000000000e-08

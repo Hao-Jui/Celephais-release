@@ -1,0 +1,44 @@
+[bh]
+chi = 0
+dim = 2
+fixed_lapse = 0.20000000000000001
+hc = 1.0024841606013677
+deg = 0
+massScal = 0
+mb = 1.5607866483023307
+mch = 1.2000000000000000
+mirr = 1.2000000000000000
+nc = 0.0013431250000000004
+nshells = 1
+omega = 0
+ql_madm = 1.5500000000000000
+res = 11
+rin = 0.41522491349480972
+rmid = 0.83044982698961944
+rout = 1.6608996539792389
+
+[fields]
+conf = true
+lapse = true
+logh = true
+shift = true
+
+[sequence_controls]
+checkpoint = false
+corot_binary = false
+delete_shift = false
+fixed_bin_omega = false
+fixed_lapse = false
+fixed_mb = false
+initial_regrid = true
+use_pn = false
+
+[sequence_settings]
+initial_resolution = 11
+solver_max_iterations = 15
+solver_precision = 1.0000000000000000e-08
+
+[stages]
+binary_boost = false
+dirichlet_lapse = false
+von_neumann = true

@@ -1,0 +1,7 @@
+#include "@KADATH_X_PROFILE_SPACE_HEADER@"
+#include "Apps/Diagnostics/x_profile.hpp"
+
+int main(int argc, char** argv)
+{
+    return @KADATH_X_PROFILE_ENTRYPOINT@(argc, argv);
+}

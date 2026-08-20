@@ -1,0 +1,7 @@
+#include "@KADATH_READER_SPACE_HEADER@"
+#include "Apps/Diagnostics/reader_entrypoints.hpp"
+
+int main(int argc, char** argv)
+{
+    return @KADATH_READER_ENTRYPOINT@(argc, argv, "@KADATH_READER_USAGE@");
+}

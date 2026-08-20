@@ -1,0 +1,73 @@
+/**
+ * @defgroup spectral Spectral primitives
+ * @brief Arrays, bases, coefficient transforms, 1D operators.
+ *
+ * Foundation layer: `Array`, `Dim_array`, `Base_spectral`, `Coef`, `Ope_1d`.
+ */
+
+/**
+ * @defgroup fields Tensor fields and coordinate carriers
+ * @brief `Scalar`, `Tensor`, `Vector`, `Metric`, coordinate-fields helpers.
+ *
+ * Built on top of @ref spectral. Owns spectral storage per domain via
+ * `Val_domain`.
+ */
+
+/**
+ * @defgroup domains Geometric domains
+ * @brief `Domain`, `Space`, and concrete shells (spheric, polar, bispheric,
+ * adapted, fourD-periodic, ...).
+ *
+ * Domains supply the topology, coordinate maps, and boundary information
+ * over which @ref fields live.
+ */
+
+/**
+ * @defgroup systems Equation systems and solvers
+ * @brief `System_of_eqs`, equation registration (`add_eq_*`), Jacobian
+ * column engine, MUMPS / Krylov linear solvers.
+ *
+ * Consumes @ref fields on @ref domains. Produces residual + Jacobian for
+ * the Newton loop in `do_newton` / `do_newton_sparse`.
+ */
+
+/**
+ * @defgroup utilities Utilities and IO
+ * @brief Memory pools, parameter bags, binary IO sinks/sources, name tools.
+ *
+ * Cross-cutting helpers used by all other groups.
+ */
+
+/**
+ * @defgroup eos Equations of state
+ * @brief Cold and finite-temperature EOS tables, TOV solver.
+ *
+ * Self-contained subsystem under `include/hydro/`.
+ */
+
+/**
+ * @defgroup metric Metric tensors
+ * @brief 3+1 / conformal / AADS metric carriers.
+ *
+ * Built on @ref fields. Provide Christoffel symbols, Ricci, conformal
+ * factor, lapse, shift, and contraction helpers consumed by @ref systems.
+ */
+
+/**
+ * @defgroup util Low-level utilities
+ * @brief `Array`, `Dim_array`, `Index`, `List_comp`, `Matrice`, `Param`.
+ *
+ * Containers, indexing primitives, parameter bags, dense matrix helper.
+ */
+
+/**
+ * @defgroup Configurator Configurator subsystem
+ * @brief TOML-backed runtime configuration for FUKa applications.
+ *
+ * Lives under `include/for_Kadath/config/`.
+ */
+
+/**
+ * @defgroup fft FFTW interop
+ * @brief Thin wrappers around FFTW for spectral basis transforms.
+ */

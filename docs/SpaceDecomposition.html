@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BNS Space Decomposition — Kadath Space_bin_ns</title>
+<style>
+  :root{
+    --bg:#0b0f1a; --panel:rgba(17,23,38,0.92); --panel-b:#26314d;
+    --ink:#e8edf7; --muted:#9aa7c2; --accent:#5ad1e6;
+    --nuc:#ff7043; --mid:#ffd54f; --rout:#ffe9a8;
+    --bisp:#4fd0c0; --rext:#cfe3ff; --comp:#b39ddb; --foci:#ff5d8f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+  .panel{position:absolute;background:var(--panel);border:1px solid var(--panel-b);
+    border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  /* Title */
+  #title{top:14px;left:14px;padding:12px 16px;max-width:330px}
+  #title h1{margin:0 0 3px;font-size:15px;letter-spacing:.2px}
+  #title p{margin:0;font-size:11.5px;color:var(--muted);line-height:1.45}
+  #title .cfg{margin-top:8px;font-size:11px;color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  /* Legend / controls */
+  #legend{top:14px;right:14px;width:312px;max-height:calc(100vh - 28px);overflow:auto;padding:12px 14px}
+  #legend h2{margin:2px 0 8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+  .row{display:flex;align-items:center;gap:9px;padding:5px 6px;border-radius:8px;cursor:pointer;user-select:none}
+  .row:hover{background:rgba(255,255,255,.05)}
+  .row.off{opacity:.4}
+  .sw{width:14px;height:14px;border-radius:4px;flex:0 0 auto;border:1px solid rgba(255,255,255,.25)}
+  .row .nm{font-size:12px;flex:1 1 auto}
+  .row .rv{font-size:11px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .grp{margin-top:9px;border-top:1px solid var(--panel-b);padding-top:7px}
+  .hint{font-size:10.5px;color:var(--muted);line-height:1.5;margin:6px 2px 0}
+  .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  button{background:#1b2440;color:var(--ink);border:1px solid var(--panel-b);border-radius:8px;
+    padding:6px 9px;font-size:11px;cursor:pointer}
+  button:hover{background:#243153}
+  button.active{border-color:var(--accent);color:var(--accent)}
+  /* Params */
+  #params{bottom:14px;left:14px;padding:10px 14px;width:330px}
+  #params h2{margin:0 0 7px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+  .pgrid{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:5px 9px;align-items:center}
+  .pgrid label{font-size:11px;color:var(--muted)}
+  .pgrid input{width:100%;background:#0f1626;border:1px solid var(--panel-b);color:var(--ink);
+    border-radius:6px;padding:3px 6px;font-size:11px;font-family:ui-monospace,Menlo,monospace}
+  #params .foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+  #params .foot .note{font-size:10px;color:var(--muted)}
+  #reset{position:absolute;bottom:14px;right:14px;padding:8px 12px}
+  #reset .hint{margin-top:6px}
+  .kbd{font-family:ui-monospace,Menlo,monospace;background:#0f1626;border:1px solid var(--panel-b);
+    border-radius:4px;padding:0 4px;font-size:10px}
+  #tip{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:11px;color:var(--muted);
+    background:var(--panel);border:1px solid var(--panel-b);border-radius:20px;padding:6px 14px;pointer-events:none}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="panel" id="title">
+  <h1>BNS Space Decomposition</h1>
+  <p>Interactive 3D layout of Kadath's <b>Space_bin_ns</b> domain decomposition for binary neutron stars. Drag to rotate · scroll to zoom. Every radius is computed from the Kadath source formulas.</p>
+  <div class="cfg" id="cfgline"></div>
+</div>
+
+<div class="panel" id="legend">
+  <h2>Domains — click to toggle</h2>
+  <div id="rows"></div>
+  <div class="btns">
+    <button id="btnCut">Cross-section</button>
+    <button id="btnBisp" class="active">Bispheric split</button>
+    <button id="btnLabels" class="active">Labels</button>
+    <button id="btnSpin">Spin</button>
+  </div>
+  <div class="hint">
+    The space is axisymmetric about the binary axis (x). Around each star: a <b>nucleus</b> (rin), an
+    <b>outer&nbsp;adapted</b> shell ending at the matter surface (rmid), and an <b>inner&nbsp;adapted</b> shell out to
+    rout. Five <b>bispheric</b> blocks fill the space between the stars out to rext, then one <b>compactified</b>
+    domain reaches spatial infinity.
+  </div>
+</div>
+
+<div class="panel" id="params">
+  <h2>Parameters (geometric units, M<sub>☉</sub>=1)</h2>
+  <div class="pgrid">
+    <label>dist</label><input id="i_dist" type="number" step="0.1">
+    <label>rext</label><input id="i_rext" type="number" step="1">
+    <label>NS1 rin</label><input id="i_rin1" type="number" step="0.1">
+    <label>NS2 rin</label><input id="i_rin2" type="number" step="0.1">
+    <label>NS1 rmid</label><input id="i_rmid1" type="number" step="0.1">
+    <label>NS2 rmid</label><input id="i_rmid2" type="number" step="0.1">
+    <label>NS1 rout</label><input id="i_rout1" type="number" step="0.1">
+    <label>NS2 rout</label><input id="i_rout2" type="number" step="0.1">
+    <label>NS1 shells</label><input id="i_ns1" type="number" step="1" min="0">
+    <label>NS2 shells</label><input id="i_ns2" type="number" step="1" min="0">
+    <label>outer shells</label><input id="i_outer" type="number" step="1" min="0">
+    <label></label><span></span>
+  </div>
+  <div class="foot">
+    <span class="note" id="derived"></span>
+    <button id="btnDefault">Reset to example config</button>
+  </div>
+</div>
+
+<div class="panel" id="reset">
+  <button id="btnHome">Reset view</button>
+  <div class="hint">Drag · scroll · right-drag pan</div>
+</div>
+
+<div id="tip"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================================
+   BNS Space Decomposition  —  Kadath  Space_bin_ns
+   Geometry follows src/Space/Bin_ns/space_bin_ns.cpp and the bispherical
+   zone-cut functions in src/Domain/Bispheric/zone_cut.cpp.
+
+   Per-star domains (built by build_adapted_star_domains):
+       nucleus            : sphere radius rin,  centered on star
+       outer adapted shell: rin -> rmid        (outer face = matter surface)
+       inner adapted shell: rmid -> rout        (inner face = matter surface)
+       [+ optional outer spherical shells subdividing toward rout]
+   Bispheric region (5 blocks): chi_first | rect | eta_first | rect | chi_first
+       bounded outward by the sphere r = rext (centered on the origin)
+   Outer shells: rext*(1+0.25 e),  then the compactified domain -> infinity.
+
+   Star centers sit at  x = -/+ sqrt(rout^2 + a^2)  where the focal length a
+   solves  sqrt(a^2+rout1^2) + sqrt(a^2+rout2^2) = dist.  For equal rout this
+   reduces to x = -/+ dist/2.
+   ========================================================================== */
+
+// ---- Default configuration : references/.../BNS/.../initial_bns.info --------
+//      Example converged binary: q = 0.8, Madm = 1.5 + 1.2 Msun, d = 35.
+//      The decomposition is EOS-independent: it depends only on the radii and
+//      the separation, not on the equation of state.
+const DEFAULT = {
+  dist:35, rext:70,
+  rin1:2.9617307086941844, rmid1:5.9234614173944689, rout1:9.9786680840737993,
+  rin2:3.1090010630527525, rmid2:6.2180021261106999, rout2:9.9786680840737993,
+  nshells1:0, nshells2:0, outer_shells:0,
+  com:1.9497385926730901, q:0.8, madm1:1.5, madm2:1.2
+};
+let CFG = Object.assign({}, DEFAULT);
+
+// ---------------------------------------------------------------- geometry ---
+function solveAA(R1,R2,dist){
+  // root of f(a)=sqrt(a^2+R1^2)+sqrt(a^2+R2^2)-dist on (0,dist/2)
+  const f=a=>Math.sqrt(a*a+R1*R1)+Math.sqrt(a*a+R2*R2)-dist;
+  let lo=1e-9, hi=dist/2-1e-9;
+  if(f(lo)*f(hi)>0) return Math.max(1e-6, Math.sqrt(Math.max(0,(dist/2)*(dist/2)-((R1+R2)/2)**2)));
+  for(let i=0;i<200;i++){const m=0.5*(lo+hi); if(f(lo)*f(m)<=0)hi=m; else lo=m;}
+  return 0.5*(lo+hi);
+}
+function physical(aa,eta,chi){
+  const den=Math.cosh(eta)-Math.cos(chi);
+  return {x:aa*Math.sinh(eta)/den, rho:aa*Math.sin(chi)/den};
+}
+function chiAtRext(aa,eta,rext,chi_c){
+  // solve (sinh^2 eta + sin^2 chi)/(cosh eta-cos chi)^2 = (rext/aa)^2, chi in (0,chi_c)
+  const rsa=rext/aa;
+  const g=chi=>{const d=Math.cosh(eta)-Math.cos(chi);
+    return (Math.sinh(eta)**2+Math.sin(chi)**2)/(d*d)-rsa*rsa;};
+  if(Math.abs(eta)<=1e-12) return chi_c;
+  let lo=1e-9, hi=chi_c;
+  if(g(lo)*g(hi)>0) return chi_c;
+  for(let i=0;i<200;i++){const m=0.5*(lo+hi); if(g(lo)*g(m)<=0)hi=m; else lo=m;}
+  return 0.5*(lo+hi);
+}
+function etaAtRext(aa,chi,rext,eta_c){
+  // inverse of chiAtRext (Kadath eta_lim_chi): for given chi, the |eta| on the
+  // outer boundary r=rext, found on (0,eta_c). chi->0 returns eta_c.
+  if(chi<=1e-12) return eta_c;
+  const rsa=rext/aa;
+  const g=eta=>{const d=Math.cosh(eta)-Math.cos(chi);
+    return (Math.sinh(eta)**2+Math.sin(chi)**2)/(d*d)-rsa*rsa;};
+  let lo=1e-9, hi=eta_c;
+  if(g(lo)*g(hi)>0) return eta_c;
+  for(let i=0;i<200;i++){const m=0.5*(lo+hi); if(g(lo)*g(m)<=0)hi=m; else lo=m;}
+  return 0.5*(lo+hi);
+}
+
+function derive(cfg){
+  const R1=cfg.rout1, R2=cfg.rout2, d=cfg.dist, rext=cfg.rext;
+  const aa=solveAA(R1,R2,d);
+  const eta_plus  = Math.asinh(aa/R2);
+  const eta_minus = -Math.asinh(aa/R1);
+  const x1 = aa*Math.cosh(eta_minus)/Math.sinh(eta_minus); // = -sqrt(R1^2+aa^2)
+  const x2 = aa*Math.cosh(eta_plus )/Math.sinh(eta_plus ); // = +sqrt(R2^2+aa^2)
+  const chi_c = 2*Math.atan(aa/rext);
+  const eta_c = Math.log((1+rext/aa)/(rext/aa-1));
+  const eta_lim = eta_c/2;
+  const chi_lim = chiAtRext(aa,eta_lim,rext,chi_c);
+
+  // per-star radial bounds  [rin, rmid, ...shells..., rout]
+  function starBounds(rin,rmid,rout,ns){
+    const b=[rin,rmid]; const dr=(rout-rmid)/(ns+1);
+    for(let i=1;i<=ns;i++) b.push(rmid+dr*i);
+    b.push(rout); return b;
+  }
+  const b1=starBounds(cfg.rin1,cfg.rmid1,cfg.rout1,cfg.nshells1);
+  const b2=starBounds(cfg.rin2,cfg.rmid2,cfg.rout2,cfg.nshells2);
+
+  // outer shells then compact inner radius
+  const outer=[]; for(let e=0;e<=cfg.outer_shells;e++) outer.push(rext*(1+0.25*e));
+  const compactInner=outer[outer.length-1];
+
+  return {aa,eta_plus,eta_minus,x1,x2,chi_c,eta_c,eta_lim,chi_lim,b1,b2,outer,compactInner,rext};
+}
+
+// ------------------------------------------------------------------ three ---
+const app=document.getElementById('app');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0b0f1a);
+scene.fog=new THREE.FogExp2(0x0b0f1a,0.0019);
+
+const camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.5,5000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio));
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.localClippingEnabled=true;
+app.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff,0.62));
+const key=new THREE.DirectionalLight(0xffffff,0.85); key.position.set(80,120,140); scene.add(key);
+const rim=new THREE.DirectionalLight(0x88aaff,0.45); rim.position.set(-120,-40,-80); scene.add(rim);
+
+const clipPlane=new THREE.Plane(new THREE.Vector3(0,0,-1),0); // hides z>0 when active
+let clipping=false;
+
+const root=new THREE.Group(); scene.add(root);   // everything (binary axis = world X)
+const labelGroup=new THREE.Group(); scene.add(labelGroup);
+
+// registry of toggleable groups
+const groups={};      // key -> THREE.Group
+const groupVisible={};
+const BISP_KEYS=['bisp_cf1','bisp_rect1','bisp_eta','bisp_rect2','bisp_cf2']; // 5 bispheric blocks
+
+function mat(color,opacity,opts={}){
+  return new THREE.MeshPhongMaterial(Object.assign({
+    color, transparent:opacity<1, opacity, shininess:40, side:THREE.DoubleSide,
+    clippingPlanes:[], depthWrite:opacity>0.92
+  },opts));
+}
+function wire(color,opacity){
+  return new THREE.MeshBasicMaterial({color,wireframe:true,transparent:true,opacity,clippingPlanes:[]});
+}
+
+// label sprite
+function makeLabel(text,color){
+  const pad=12, fs=46;
+  const c=document.createElement('canvas'); const g=c.getContext('2d');
+  g.font=`600 ${fs}px -apple-system,Segoe UI,Roboto,sans-serif`;
+  const w=g.measureText(text).width;
+  c.width=w+pad*2; c.height=fs+pad*1.4;
+  g.font=`600 ${fs}px -apple-system,Segoe UI,Roboto,sans-serif`;
+  g.fillStyle='rgba(8,12,22,0.82)'; roundRect(g,0,0,c.width,c.height,14); g.fill();
+  g.fillStyle=color||'#e8edf7'; g.textBaseline='middle';
+  g.fillText(text,pad,c.height/2+1);
+  const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));
+  sp.scale.set(c.width/fs*2.0, c.height/fs*2.0, 1);
+  return sp;
+}
+function roundRect(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);
+  g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+
+const allMaterials=[];
+function track(m){allMaterials.push(m);return m;}
+
+// sphere centered on x-axis at cx
+function sphereMesh(cx,r,material){
+  const geo=new THREE.SphereGeometry(r,64,48);
+  const m=new THREE.Mesh(geo,material); m.position.x=cx; return m;
+}
+// revolve a profile [{x,rho}] around the world X-axis -> open surface
+function latheX(profile,material){
+  const pts=profile.map(p=>new THREE.Vector2(Math.max(1e-4,p.rho), p.x));
+  const geo=new THREE.LatheGeometry(pts,96);
+  const m=new THREE.Mesh(geo,material);
+  m.rotation.z=-Math.PI/2;     // lathe Y-axis -> world X-axis
+  return m;
+}
+
+// ------------------------------------------------------------- build scene ---
+let G=null, sceneScale=1;
+function clearGroup(g){while(g.children.length){const c=g.children.pop(); if(c.geometry)c.geometry.dispose();}}
+
+function build(){
+  // wipe
+  while(root.children.length) root.remove(root.children[0]);
+  while(labelGroup.children.length) labelGroup.remove(labelGroup.children[0]);
+  allMaterials.length=0;
+  for(const k in groups) delete groups[k];
+
+  G=derive(CFG);
+  const {x1,x2,b1,b2,rext,outer,compactInner,aa,eta_lim,eta_minus,eta_plus,chi_lim,chi_c,eta_c}=G;
+
+  const ROWS=[]; // legend rows
+
+  function group(key){const g=new THREE.Group(); groups[key]=g; root.add(g);
+    g.visible = groupVisible[key]!==false; return g;}
+
+  // ---- helper to add a labelled sphere boundary ----
+  function addSphereBoundary(g,cx,r,colorHex,fill,labelTxt,labelColor){
+    const m=track(mat(colorHex,fill,{}));
+    g.add(sphereMesh(cx,r,m));
+    const wm=track(wire(colorHex,0.25));
+    g.add(sphereMesh(cx,r,wm));
+    if(labelTxt){
+      const sp=makeLabel(labelTxt,labelColor||'#e8edf7');
+      sp.position.set(cx, r*0.74, r*0.74);
+      sp.userData.key='labels'; labelGroup.add(sp);
+    }
+  }
+
+  // ===================== STAR 1 =====================
+  {
+    const g=group('star1');
+    // nucleus (solid-ish)
+    addSphereBoundary(g,x1,b1[0],0xff7043,0.55,`rin₁ = ${b1[0].toFixed(2)}`,'#ffb59a');
+    // intermediate shells (rmid .. before rout)
+    for(let i=1;i<b1.length-1;i++){
+      const isSurface=(i===1);
+      const col=isSurface?0xffd54f:0xffe9a8;
+      addSphereBoundary(g,x1,b1[i],col,isSurface?0.30:0.16,
+        isSurface?`rmid₁ = ${b1[i].toFixed(2)} (surface)`:`shell ${b1[i].toFixed(2)}`, isSurface?'#ffe08a':null);
+    }
+    // outer adapted boundary (rout)
+    addSphereBoundary(g,x1,b1[b1.length-1],0xffe9a8,0.10,`rout₁ = ${b1[b1.length-1].toFixed(2)}`,'#ffe9a8');
+    ROWS.push({key:'star1',color:'#ff8a65',name:'Star 1 (nucleus → rout)',
+      rv:`${b1[0].toFixed(2)} / ${b1[1].toFixed(2)} / ${b1[b1.length-1].toFixed(2)}`});
+  }
+  // ===================== STAR 2 =====================
+  {
+    const g=group('star2');
+    addSphereBoundary(g,x2,b2[0],0xff7043,0.55,`rin₂ = ${b2[0].toFixed(2)}`,'#ffb59a');
+    for(let i=1;i<b2.length-1;i++){
+      const isSurface=(i===1);
+      const col=isSurface?0xffd54f:0xffe9a8;
+      addSphereBoundary(g,x2,b2[i],col,isSurface?0.30:0.16,
+        isSurface?`rmid₂ = ${b2[i].toFixed(2)} (surface)`:`shell ${b2[i].toFixed(2)}`, isSurface?'#ffe08a':null);
+    }
+    addSphereBoundary(g,x2,b2[b2.length-1],0xffe9a8,0.10,`rout₂ = ${b2[b2.length-1].toFixed(2)}`,'#ffe9a8');
+    ROWS.push({key:'star2',color:'#ff8a65',name:'Star 2 (nucleus → rout)',
+      rv:`${b2[0].toFixed(2)} / ${b2[1].toFixed(2)} / ${b2[b2.length-1].toFixed(2)}`});
+  }
+
+  // ===================== BISPHERIC : 5 distinct blocks =====================
+  // chi_first1 | rect1 | eta_first | rect2 | chi_first2 — each an axisymmetric
+  // solid of revolution built from its exact (eta,chi) rectangle, taken straight
+  // from Domain_bispheric_{chi_first,rect,eta_first}.cpp (do_eta / do_chi):
+  //   eta_first : eta in [-eta_lim,+eta_lim], chi in [chi_out(eta), pi]
+  //   rect      : eta in [eta_star,-/+eta_lim], chi in [chi_lim, pi]
+  //   chi_first : chi in [0,chi_lim], eta in [eta_star, eta_out(chi)]   (touches rext)
+  {
+    const cc=chi_c, ec=eta_c, el=eta_lim, cl=chi_lim, em=eta_minus, ep=eta_plus, PI=Math.PI;
+    const P=(eta,chi)=>physical(aa,eta,chi);
+    const chiOut=eta=>chiAtRext(aa,eta,rext,cc);     // chi on r=rext for given eta
+    const etaOut=chi=>etaAtRext(aa,chi,rext,ec);     // |eta| on r=rext for given chi
+    const L=(a,b,t)=>a+(b-a)*t;
+    const meridian=edges=>{const p=[],N=22; edges.forEach(fn=>{for(let i=0;i<N;i++)p.push(fn(i/N));});
+      p.push(edges[0](0)); return p;};
+    const blocks=[
+      {key:'bisp_cf1', name:'chi_first · 1', color:0x2ec4b6, edges:[
+        t=>P(em, L(0,cl,t)),                 t=>P(L(em,-el,t), cl),
+        t=>{const c=L(cl,0,t); return P(-etaOut(c), c);}, t=>P(L(-ec,em,t), 0)]},
+      {key:'bisp_rect1', name:'rect · 1', color:0x4f8ff0, edges:[
+        t=>P(em, L(cl,PI,t)),                t=>P(L(em,-el,t), PI),
+        t=>P(-el, L(PI,cl,t)),               t=>P(L(-el,em,t), cl)]},
+      {key:'bisp_eta', name:'eta_first (middle)', color:0xf4a14e, edges:[
+        t=>P(-el, L(PI,cl,t)),               t=>{const e=L(-el,el,t); return P(e, chiOut(e));},
+        t=>P(el, L(cl,PI,t)),                t=>P(L(el,-el,t), PI)]},
+      {key:'bisp_rect2', name:'rect · 2', color:0x6fb0ff, edges:[
+        t=>P(ep, L(cl,PI,t)),                t=>P(L(ep,el,t), PI),
+        t=>P(el, L(PI,cl,t)),                t=>P(L(el,ep,t), cl)]},
+      {key:'bisp_cf2', name:'chi_first · 2', color:0x6ee0d2, edges:[
+        t=>P(ep, L(0,cl,t)),                 t=>P(L(ep,el,t), cl),
+        t=>{const c=L(cl,0,t); return P(etaOut(c), c);}, t=>P(L(ec,ep,t), 0)]},
+    ];
+    blocks.forEach(b=>{
+      const g=group(b.key);
+      const prof=meridian(b.edges);
+      g.add(latheX(prof, track(mat(b.color,0.24,{}))));
+      g.add(latheX(prof, track(wire(b.color,0.22))));
+      ROWS.push({key:b.key,color:'#'+b.color.toString(16).padStart(6,'0'),name:b.name,rv:''});
+    });
+    // foci of the bispherical coordinates
+    const gf=group('bisp_foci');
+    for(const sgn of [1,-1]){
+      const fm=track(new THREE.MeshBasicMaterial({color:0xff5d8f,clippingPlanes:[]}));
+      const fp=new THREE.Mesh(new THREE.SphereGeometry(rext*0.012,16,16),fm);
+      fp.position.x=sgn*aa; gf.add(fp);
+    }
+    const fl=makeLabel(`foci  x = ±${aa.toFixed(2)}`,'#ff9bbb'); fl.position.set(aa,-rext*0.05,rext*0.05);
+    fl.userData.key='labels'; labelGroup.add(fl);
+    ROWS.push({key:'bisp_foci',color:'#ff5d8f',name:'bispheric foci',rv:`a=${aa.toFixed(2)}`});
+  }
+
+  // ===================== rext OUTER BOUNDARY =====================
+  {
+    const g=group('rext');
+    const wm=track(new THREE.MeshBasicMaterial({color:0xcfe3ff,wireframe:true,transparent:true,opacity:0.10,clippingPlanes:[]}));
+    g.add(sphereMesh(0,rext,wm));
+    const sp=makeLabel(`rext = ${rext.toFixed(1)}`,'#cfe3ff');
+    sp.position.set(0,rext*0.70,-rext*0.70); sp.userData.key='labels'; labelGroup.add(sp);
+    ROWS.push({key:'rext',color:'#cfe3ff',name:'rext — bispheric outer sphere',rv:rext.toFixed(1)});
+  }
+
+  // ===================== OUTER SHELLS =====================
+  if(CFG.outer_shells>0){
+    const g=group('oshell');
+    for(let e=1;e<outer.length;e++){
+      const wm=track(new THREE.MeshBasicMaterial({color:0x8fb6ff,wireframe:true,transparent:true,opacity:0.12,clippingPlanes:[]}));
+      g.add(sphereMesh(0,outer[e],wm));
+    }
+    ROWS.push({key:'oshell',color:'#8fb6ff',name:`Outer shells (×${CFG.outer_shells})`,
+      rv:`→ ${compactInner.toFixed(1)}`});
+  }
+
+  // ===================== COMPACTIFIED DOMAIN -> infinity =====================
+  {
+    const g=group('compact');
+    const wm=track(new THREE.MeshBasicMaterial({color:0xb39ddb,wireframe:true,transparent:true,opacity:0.16,clippingPlanes:[]}));
+    g.add(sphereMesh(0,compactInner,wm));
+    // a faint, larger ghost sphere implying infinity
+    const wm2=track(new THREE.MeshBasicMaterial({color:0xb39ddb,wireframe:true,transparent:true,opacity:0.05,clippingPlanes:[]}));
+    g.add(sphereMesh(0,compactInner*1.42,wm2));
+    const sp=makeLabel(`compactified  r ∈ [${compactInner.toFixed(0)}, ∞)`,'#cdbcef');
+    sp.position.set(0,-compactInner*0.72,compactInner*0.55); sp.userData.key='labels'; labelGroup.add(sp);
+    ROWS.push({key:'compact',color:'#b39ddb',name:'Compactified domain → ∞',rv:`[${compactInner.toFixed(0)}, ∞)`});
+  }
+
+  // ===================== axis + COM + origin =====================
+  {
+    const g=group('axis');
+    const axMat=track(new THREE.LineBasicMaterial({color:0x556685,transparent:true,opacity:0.6,clippingPlanes:[]}));
+    const ax=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-rext*1.5,0,0),new THREE.Vector3(rext*1.5,0,0)]);
+    g.add(new THREE.Line(ax,axMat));
+    // star centers
+    for(const cx of [x1,x2]){
+      const cm=track(new THREE.MeshBasicMaterial({color:0xffffff,clippingPlanes:[]}));
+      const dot=new THREE.Mesh(new THREE.SphereGeometry(rext*0.008,12,12),cm); dot.position.x=cx; g.add(dot);
+    }
+    const cl=makeLabel(`x₁ = ${x1.toFixed(2)}`,'#cbd5ee'); cl.position.set(x1,-rext*0.12,0);
+    cl.userData.key='labels'; labelGroup.add(cl);
+    const cr=makeLabel(`x₂ = ${x2.toFixed(2)}`,'#cbd5ee'); cr.position.set(x2,-rext*0.12,0);
+    cr.userData.key='labels'; labelGroup.add(cr);
+    // COM marker
+    if(isFinite(CFG.com)){
+      const com=track(new THREE.MeshBasicMaterial({color:0x7ee8da,clippingPlanes:[]}));
+      const m=new THREE.Mesh(new THREE.SphereGeometry(rext*0.01,16,16),com); m.position.x=CFG.com; g.add(m);
+    }
+    ROWS.push({key:'axis',color:'#90a0c0',name:'Binary axis · centers · COM',rv:`d = ${CFG.dist}`});
+  }
+
+  // apply visibility + clipping state
+  applyClipping();
+  buildLegend(ROWS);
+  fitCamera(rext*1.5);
+  updateReadouts();
+}
+
+// ------------------------------------------------------------- legend UI ---
+function buildLegend(rows){
+  const host=document.getElementById('rows'); host.innerHTML='';
+  rows.forEach(r=>{
+    const div=document.createElement('div');
+    div.className='row'+(groupVisible[r.key]===false?' off':'');
+    div.setAttribute('data-key',r.key);
+    div.innerHTML=`<span class="sw" style="background:${r.color}"></span>
+      <span class="nm">${r.name}</span><span class="rv">${r.rv||''}</span>`;
+    div.onclick=()=>{
+      groupVisible[r.key]=!(groupVisible[r.key]!==false);
+      if(groups[r.key]) groups[r.key].visible=groupVisible[r.key];
+      div.classList.toggle('off',!groupVisible[r.key]);
+    };
+    host.appendChild(div);
+  });
+}
+
+function applyClipping(){
+  const planes=clipping?[clipPlane]:[];
+  allMaterials.forEach(m=>{m.clippingPlanes=planes; m.needsUpdate=true;});
+}
+
+function updateReadouts(){
+  document.getElementById('cfgline').textContent =
+    `q=${CFG.q} · M=${CFG.madm1}+${CFG.madm2} M☉ · d=${CFG.dist} · rext=${CFG.rext}`;
+  const nd=G;
+  document.getElementById('derived').innerHTML =
+    `a=${nd.aa.toFixed(3)} · x₁,₂=∓${Math.abs(nd.x1).toFixed(2)} · η_lim=${nd.eta_lim.toFixed(3)} · 12+${CFG.nshells1+CFG.nshells2+CFG.outer_shells} domains`;
+}
+
+// ------------------------------------------------------------- camera ctl ---
+const target=new THREE.Vector3(0,0,0);
+let radius=160, theta=0.9, phi=1.15; // spherical around target
+function fitCamera(r){ radius=r*2.1; theta=0.9; phi=1.12; target.set(0,0,0); updateCam(); }
+function updateCam(){
+  phi=Math.max(0.08,Math.min(Math.PI-0.08,phi));
+  camera.position.set(
+    target.x+radius*Math.sin(phi)*Math.cos(theta),
+    target.y+radius*Math.cos(phi),
+    target.z+radius*Math.sin(phi)*Math.sin(theta));
+  camera.lookAt(target);
+}
+let drag=null;
+renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,b:e.button};});
+window.addEventListener('pointerup',()=>drag=null);
+window.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+  if(drag.b===2){ // pan
+    const panScale=radius*0.0016;
+    const right=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),
+      new THREE.Vector3().subVectors(camera.position,target)).normalize();
+    const up=new THREE.Vector3(0,1,0);
+    target.addScaledVector(right,-dx*panScale); target.addScaledVector(up,dy*panScale);
+  }else{
+    theta-=dx*0.005; phi-=dy*0.005;
+  }
+  updateCam();
+});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel',e=>{
+  e.preventDefault(); radius*=Math.pow(1.0015,e.deltaY); radius=Math.max(8,Math.min(2600,radius)); updateCam();
+},{passive:false});
+
+// ------------------------------------------------------------- buttons -----
+let spin=false;
+document.getElementById('btnCut').onclick=e=>{clipping=!clipping;e.target.classList.toggle('active',clipping);applyClipping();};
+document.getElementById('btnBisp').onclick=e=>{
+  const vis=!(groupVisible['bisp_eta']!==false);   // flip current state
+  BISP_KEYS.forEach(k=>{groupVisible[k]=vis; if(groups[k])groups[k].visible=vis;
+    const r=document.querySelector(`[data-key="${k}"]`); if(r)r.classList.toggle('off',!vis);});
+  e.target.classList.toggle('active',vis);
+};
+document.getElementById('btnLabels').onclick=e=>{
+  labelGroup.visible=!labelGroup.visible; e.target.classList.toggle('active',labelGroup.visible);
+};
+document.getElementById('btnSpin').onclick=e=>{spin=!spin;e.target.classList.toggle('active',spin);};
+document.getElementById('btnHome').onclick=()=>fitCamera(CFG.rext*1.5);
+
+// ------------------------------------------------------------- params UI ---
+const inputs={dist:'i_dist',rext:'i_rext',rin1:'i_rin1',rmid1:'i_rmid1',rout1:'i_rout1',
+  rin2:'i_rin2',rmid2:'i_rmid2',rout2:'i_rout2',nshells1:'i_ns1',nshells2:'i_ns2',outer_shells:'i_outer'};
+function fillInputs(){for(const k in inputs){const el=document.getElementById(inputs[k]);
+  el.value=(k.startsWith('nshells')||k==='outer_shells')?CFG[k]:(+CFG[k]).toString();}}
+function readInputs(){
+  for(const k in inputs){let v=parseFloat(document.getElementById(inputs[k]).value);
+    if(!isFinite(v))v=CFG[k];
+    if(k.startsWith('nshells')||k==='outer_shells')v=Math.max(0,Math.round(v));
+    CFG[k]=v;}
+  // basic sanity: keep rin<rmid<rout<rext, dist>rout1+rout2
+  CFG.rmid1=Math.max(CFG.rin1+1e-3,CFG.rmid1); CFG.rout1=Math.max(CFG.rmid1+1e-3,CFG.rout1);
+  CFG.rmid2=Math.max(CFG.rin2+1e-3,CFG.rmid2); CFG.rout2=Math.max(CFG.rmid2+1e-3,CFG.rout2);
+  CFG.dist=Math.max(CFG.rout1+CFG.rout2+1e-2,CFG.dist);
+  CFG.rext=Math.max(CFG.dist*0.55,CFG.rext);
+}
+let deb=null;
+Object.values(inputs).forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{
+    clearTimeout(deb); deb=setTimeout(()=>{readInputs();build();},220);
+  });
+});
+document.getElementById('btnDefault').onclick=()=>{CFG=Object.assign({},DEFAULT);fillInputs();build();};
+
+// ------------------------------------------------------------- run ---------
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+const tips=['Drag to orbit','Scroll to zoom','Right-drag to pan','Toggle “Cross-section” to slice it open','Click a legend row to hide a layer'];
+let ti=0; const tipEl=document.getElementById('tip'); tipEl.textContent=tips[0];
+setInterval(()=>{ti=(ti+1)%tips.length;tipEl.textContent=tips[ti];},3600);
+
+fillInputs();
+build();
+updateCam();
+(function loop(){requestAnimationFrame(loop);
+  if(spin){theta+=0.0026;updateCam();}
+  // keep labels facing camera scale-stable
+  renderer.render(scene,camera);
+})();
+</script>
+</body>
+</html>
